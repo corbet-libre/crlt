@@ -26,7 +26,7 @@ round trips run on GitHub Actions, without workstation builds.
   is the capability handed to a leaf library; it cannot change its scope or
   expose a raw connection. Selecting a community is the caller's authorization
   responsibility. Independent communities remain isolated even in one file.
-- SQL is parsed, scoped, then executed by libSQL. Every base table in a read
+- SQL is parsed, scoped, then executed by the local libSQL engine or remote sqld. Every base table in a read
   becomes a filtered derived table. Inserted community keys are supplied by the
   handle; updates/deletes receive an additional parenthesized predicate.
   Callers cannot supply or modify `community_id` in writes.
@@ -48,11 +48,19 @@ round trips run on GitHub Actions, without workstation builds.
   The resulting schema is audited before commit: every table has a non-null
   TEXT community key leading its primary key, every unique index starts with
   that key using binary collation, and foreign keys bind both communities.
+  Community columns have no defaults, and every occurrence in a foreign key
+  must reference the parent's community column. `ON DELETE` and `ON UPDATE`
+  cannot use `SET DEFAULT` or `SET NULL` on a foreign key containing that column.
+  `CASCADE`, `RESTRICT` and `NO ACTION` remain supported: scoped writes cannot
+  update the parent's community key. Rejected audits roll back both DDL and
+  migration history; reopening also requires a successful audit before use.
 - Application statements undergo `EXPLAIN QUERY PLAN`; unbounded scans are
   refused. Constant-row plans are exempt. The public `QueryPlan::assert_indexed`
   helper also serves regression tests. Schema introspection and DDL are the
   only metadata/maintenance exceptions to the application index requirement.
-- TLS is delegated to libSQL. Only `libsql://` and `https://` remote URLs are
+- TLS and HTTP are delegated to reqwest/rustls; remote execution uses the
+  Hrana 3 pipeline and official libsql-hrana wire types. Redirects, plaintext and automatic retries are
+  disabled. Only `libsql://` and `https://` remote URLs are
   accepted, with tokens passed by the caller. Local `file:///absolute/path`
   URLs are supported; use temporary files for tests. In-memory URLs are not
   supported because independent pooled connections would lose their contents.
@@ -63,7 +71,8 @@ round trips run on GitHub Actions, without workstation builds.
   lease. An errored transaction cannot commit; drop rolls it back via libSQL
   (remote cleanup is best effort, with server expiry as the fallback).
 - Rows are collected before releasing a lease and bounded by a configurable
-  row limit. A timeout on a remote write/commit can have an uncertain outcome;
+  row limit. Remote pipeline replies additionally have a 16 MiB wire-body cap
+  before decoding; page larger results. A timeout on a remote write/commit can have an uncertain outcome;
   the library never automatically retries writes.
 - This is a native server library. No browser/wasm target is required by its
   architecture. The optional live Turso test reads environment variables only

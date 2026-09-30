@@ -6,6 +6,75 @@ use common::{MIGRATIONS, config, empty, fixture};
 use crlt::{Config, Db, Error, Migration};
 
 #[tokio::test]
+async fn existing_leaf_schemas_migrate_together_and_reopen() {
+    // Exact source revisions are recorded beside these SQL snapshots.
+    let schemas = [
+        ("crgs", include_str!("fixtures/leaf_schemas/crgs.sql")),
+        ("clbs", include_str!("fixtures/leaf_schemas/clbs.sql")),
+        ("cnrl", include_str!("fixtures/leaf_schemas/cnrl.sql")),
+        ("crbk", include_str!("fixtures/leaf_schemas/crbk.sql")),
+        ("cpky", include_str!("fixtures/leaf_schemas/cpky.sql")),
+        ("cpns", include_str!("fixtures/leaf_schemas/cpns.sql")),
+        ("csgn", include_str!("fixtures/leaf_schemas/csgn.sql")),
+        ("cgrd", include_str!("fixtures/leaf_schemas/cgrd.sql")),
+        ("cssr", include_str!("fixtures/leaf_schemas/cssr.sql")),
+        (
+            "cpsd",
+            include_str!("fixtures/leaf_schemas/cpsd_schema.sql"),
+        ),
+        (
+            "cpsd issuance",
+            include_str!("fixtures/leaf_schemas/cpsd_issuance_schema.sql"),
+        ),
+        (
+            "cpsd uniqueness",
+            include_str!("fixtures/leaf_schemas/cpsd_issuance_uniqueness_schema.sql"),
+        ),
+    ];
+    let (dir, db) = empty().await;
+    let mut migrations = Vec::new();
+    for (index, (name, sql)) in schemas.iter().enumerate() {
+        migrations.push(Migration::new(u32::try_from(index + 1).unwrap(), name, sql));
+        assert_eq!(db.migrate(&migrations).await.unwrap(), 1, "{name}");
+    }
+    drop(db);
+    let db = Db::open(config(&dir)).await.unwrap();
+    assert_eq!(db.migrate(&migrations).await.unwrap(), 0);
+    for community in ["a", "b"] {
+        let scope = db.community(community).unwrap();
+        for table in [
+            "crgs_members",
+            "crgs_claims",
+            "clbs_orders",
+            "cnrl_enrolments",
+            "rulebook_revision",
+            "setting_catalog",
+            "platform_value",
+            "template",
+            "template_value",
+            "community_template",
+            "community_value",
+            "cpky_passkeys",
+            "cpns_pins",
+            "csgn_state",
+            "cgrd_snapshots",
+            "cssr_records",
+            "cpsd_challenges",
+            "cpsd_issuer_tags",
+        ] {
+            assert!(
+                scope
+                    .query(&format!("SELECT * FROM {table}"), ())
+                    .await
+                    .unwrap()
+                    .is_empty(),
+                "{table}"
+            );
+        }
+    }
+}
+
+#[tokio::test]
 async fn repeat_reopen_and_append_preserve_data() {
     let (dir, db) = fixture().await;
     assert_eq!(db.migrate(MIGRATIONS).await.unwrap(), 0);

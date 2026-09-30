@@ -11,8 +11,11 @@ publish = false
 include = ["Cargo.toml", "src/**", "docs/**", "README.md", "LICENSE", "LICENSE.md", "LICENSES/LGPL-3.0-only.txt", "LICENSES/LGPL-3.0-linking-exception.txt", "LICENSES/GPL-3.0-only.txt"]
 
 [dependencies]
-deadpool-libsql = { version = "0.1.1", default-features = false, features = ["rt_tokio_1", "core", "remote", "tls"] }
-libsql = { version = "0.9.30", default-features = false, features = ["core", "remote", "tls"] }
+deadpool = { version = "0.13.1", default-features = false, features = ["managed", "rt_tokio_1"] }
+libsql = { version = "0.9.30", default-features = false, features = ["core"] }
+libsql-hrana = "0.9.30"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
 sqlparser = { version = "0.63", features = ["visitor"] }
 thiserror = "2"
 tokio = { version = "1", features = ["rt", "sync", "time"] }

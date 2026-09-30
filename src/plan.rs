@@ -33,7 +33,7 @@ impl QueryPlan {
 }
 
 pub(crate) async fn explain(
-    conn: &libsql::Connection,
+    conn: &crate::backend::Connection,
     sql: &str,
     params: &[libsql::Value],
 ) -> Result<QueryPlan> {
@@ -42,7 +42,7 @@ pub(crate) async fn explain(
         .await?;
     let mut details = Vec::new();
     while let Some(row) = rows.next().await? {
-        details.push(row.get::<String>(3)?);
+        details.push(row.get_str(3)?.to_owned());
     }
     Ok(QueryPlan { details })
 }
@@ -57,7 +57,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-        let conn = db.connect().unwrap();
+        let conn = crate::backend::Connection::Local(db.connect().unwrap());
         conn.execute(
             "CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)",
             (),

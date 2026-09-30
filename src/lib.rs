@@ -1,16 +1,19 @@
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 
+mod backend;
 mod config;
 mod error;
 mod migration;
 mod plan;
+mod remote;
 mod row;
 mod sql;
+mod transport;
 
 use std::{collections::BTreeSet, future::Future, sync::Arc, time::Duration};
 
-use deadpool_libsql::{Manager, Pool};
+use backend::{Connection, Manager, Pool, PooledConnection};
 use tokio::{
     sync::{OwnedRwLockReadGuard, RwLock},
     time::{Instant, timeout, timeout_at},
@@ -48,7 +51,7 @@ pub struct Community {
 /// Dropping rolls back through libSQL and discards the connection lease.
 pub struct Transaction {
     // Field order drops the libSQL transaction before discarding its lease.
-    transaction: Option<libsql::Transaction>,
+    transaction: Option<backend::Transaction>,
     lease: Option<Lease>,
     schema: OwnedRwLockReadGuard<BTreeSet<String>>,
     key: String,
@@ -60,10 +63,10 @@ pub struct Transaction {
 
 /// Discard a lease unless an operation explicitly marks its completion.
 /// This covers cancellation and unwinding without an async Drop implementation.
-struct Lease(Option<deadpool_libsql::Connection>);
+struct Lease(Option<PooledConnection>);
 
 impl Lease {
-    fn conn(&self) -> &libsql::Connection {
+    fn conn(&self) -> &Connection {
         self.0.as_ref().expect("live lease")
     }
     fn recycle(mut self) {
@@ -74,7 +77,7 @@ impl Lease {
 impl Drop for Lease {
     fn drop(&mut self) {
         if let Some(connection) = self.0.take() {
-            drop(deadpool_libsql::Connection::take(connection));
+            drop(PooledConnection::take(connection));
         }
     }
 }
@@ -96,17 +99,20 @@ impl Db {
         let deadline = Instant::now() + config.timeout;
         bounded(deadline, async move {
             let local = url.scheme() == "file";
-            let database = if local {
+            let manager = if local {
                 let path = url
                     .to_file_path()
                     .map_err(|_| Error::Config("invalid file URL"))?;
-                libsql::Builder::new_local(path).build().await?
+                Manager::Local(libsql::Builder::new_local(path).build().await?)
             } else {
-                libsql::Builder::new_remote(config.url, config.token)
-                    .build()
-                    .await?
+                Manager::Remote {
+                    url: config.url,
+                    token: config.token,
+                    sender: transport::Sender::new(config.timeout)?,
+                    timeout: config.timeout,
+                }
             };
-            let pool = Pool::builder(Manager::from_libsql_database(database))
+            let pool = Pool::builder(manager)
                 .max_size(config.max_connections)
                 .build()
                 .map_err(|_| Error::Pool)?;
@@ -135,7 +141,7 @@ impl Db {
             .next()
             .await?
             .ok_or(Error::Schema("missing foreign key setting"))?
-            .get::<i64>(0)?
+            .get_i64(0)?
             != 1
         {
             return Err(Error::Schema("foreign keys must be enabled"));
@@ -315,10 +321,7 @@ impl Transaction {
             return Err(Error::TransactionAborted);
         }
         let tx = self.transaction.take().expect("live transaction");
-        bounded(self.deadline, async {
-            tx.commit().await.map_err(Error::from)
-        })
-        .await?;
+        bounded(self.deadline, tx.commit()).await?;
         self.lease.take().expect("live lease").recycle();
         Ok(())
     }
@@ -334,21 +337,17 @@ impl Transaction {
     }
 }
 
-async fn execute(conn: &libsql::Connection, scoped: &sql::ScopedSql) -> Result<u64> {
+async fn execute(conn: &Connection, scoped: &sql::ScopedSql) -> Result<u64> {
     if scoped.returns_rows {
         return Err(Error::Sql("use query for statements returning rows"));
     }
     plan::explain(conn, &scoped.sql, &scoped.params)
         .await?
         .assert_indexed()?;
-    Ok(conn.execute(&scoped.sql, scoped.params.clone()).await?)
+    conn.execute(&scoped.sql, scoped.params.clone()).await
 }
 
-async fn query(
-    conn: &libsql::Connection,
-    scoped: &sql::ScopedSql,
-    max_rows: usize,
-) -> Result<Vec<Row>> {
+async fn query(conn: &Connection, scoped: &sql::ScopedSql, max_rows: usize) -> Result<Vec<Row>> {
     if !scoped.returns_rows {
         return Err(Error::Sql("use execute for statements without rows"));
     }
@@ -356,21 +355,12 @@ async fn query(
         .await?
         .assert_indexed()?;
     let mut rows = conn.query(&scoped.sql, scoped.params.clone()).await?;
-    let columns: Arc<[String]> = (0..rows.column_count())
-        .map(|index| rows.column_name(index).unwrap_or_default().to_owned())
-        .collect();
     let mut result = Vec::new();
     while let Some(row) = rows.next().await? {
         if result.len() == max_rows {
             return Err(Error::RowLimit);
         }
-        let values = (0..row.column_count())
-            .map(|index| row.get_value(index))
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        result.push(Row {
-            columns: columns.clone(),
-            values,
-        });
+        result.push(row);
     }
     Ok(result)
 }

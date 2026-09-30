@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use libsql::{Connection, params};
+use libsql::params;
 use sqlparser::ast::{ObjectType, Statement};
 
-use crate::{Error, Result, sql};
+use crate::{Error, Result, backend::Connection, sql};
 
 const LEDGER: &str = "CREATE TABLE IF NOT EXISTS __crlt_migrations (
     community_id TEXT NOT NULL, version INTEGER NOT NULL,
@@ -91,9 +91,9 @@ pub(crate) async fn apply(
         let Some(migration) = migrations.get(applied) else {
             return Err(Error::MigrationHistory);
         };
-        if row.get::<i64>(0)? != i64::from(migration.version)
-            || row.get::<String>(1)? != migration.name
-            || row.get::<String>(2)? != migration.sql
+        if row.get_i64(0)? != i64::from(migration.version)
+            || row.get_str(1)? != migration.name
+            || row.get_str(2)? != migration.sql
         {
             return Err(Error::MigrationHistory);
         }
@@ -121,15 +121,19 @@ async fn audit(conn: &Connection) -> Result<BTreeSet<String>> {
     ).await?;
     let mut tables = BTreeSet::new();
     while let Some(row) = objects.next().await? {
-        match row.get::<String>(0)?.as_str() {
+        match row.get_str(0)? {
             "table" => {
-                let ddl = sql::parse(&row.get::<String>(2)?)?;
+                let ddl = sql::parse(row.get_str(2)?)?;
                 let [Statement::CreateTable(table)] = ddl.as_slice() else {
                     return Err(Error::Schema("only ordinary tables are supported"));
                 };
                 for column in &table.columns {
                     if column.name.value.eq_ignore_ascii_case("community_id") {
                         for option in &column.options {
+                            // The scope is always supplied by the handle, never by DDL.
+                            if matches!(option.option, sqlparser::ast::ColumnOption::Default(_)) {
+                                return Err(Error::Schema("community_id must not have a default"));
+                            }
                             if let sqlparser::ast::ColumnOption::Collation(collation) =
                                 &option.option
                                 && sql::name(collation)? != "binary"
@@ -141,7 +145,7 @@ async fn audit(conn: &Connection) -> Result<BTreeSet<String>> {
                         }
                     }
                 }
-                tables.insert(row.get::<String>(1)?);
+                tables.insert(row.get_str(1)?.to_owned());
             }
             "index" => {}
             _ => return Err(Error::Schema("views and triggers are forbidden")),
@@ -157,11 +161,11 @@ async fn audit(conn: &Connection) -> Result<BTreeSet<String>> {
             .await?;
         let mut community_found = false;
         while let Some(row) = columns.next().await? {
-            if row.get::<String>(1)?.eq_ignore_ascii_case("community_id") {
-                community_found = row.get::<String>(2)?.eq_ignore_ascii_case("TEXT")
-                    && row.get::<i64>(3)? == 1
-                    && row.get::<i64>(5)? == 1
-                    && row.get::<i64>(6)? == 0;
+            if row.get_str(1)?.eq_ignore_ascii_case("community_id") {
+                community_found = row.get_str(2)?.eq_ignore_ascii_case("TEXT")
+                    && row.get_i64(3)? == 1
+                    && row.get_i64(5)? == 1
+                    && row.get_i64(6)? == 0;
             }
         }
         if !community_found {
@@ -173,10 +177,10 @@ async fn audit(conn: &Connection) -> Result<BTreeSet<String>> {
             .query(&format!("PRAGMA index_list(\"{table}\")"), ())
             .await?;
         while let Some(row) = indexes.next().await? {
-            if row.get::<i64>(2)? == 0 {
+            if row.get_i64(2)? == 0 {
                 continue;
             }
-            let index = row.get::<String>(1)?.replace('"', "\"\"");
+            let index = row.get_str(1)?.replace('"', "\"\"");
             let mut columns = conn
                 .query(&format!("PRAGMA index_xinfo(\"{index}\")"), ())
                 .await?;
@@ -184,8 +188,8 @@ async fn audit(conn: &Connection) -> Result<BTreeSet<String>> {
                 .next()
                 .await?
                 .ok_or(Error::Schema("empty unique index"))?;
-            if !first.get::<String>(2)?.eq_ignore_ascii_case("community_id")
-                || !first.get::<String>(4)?.eq_ignore_ascii_case("BINARY")
+            if !first.get_str(2)?.eq_ignore_ascii_case("community_id")
+                || !first.get_str(4)?.eq_ignore_ascii_case("BINARY")
             {
                 return Err(Error::Schema(
                     "every unique key must start with binary community_id",
@@ -196,13 +200,32 @@ async fn audit(conn: &Connection) -> Result<BTreeSet<String>> {
             .query(&format!("PRAGMA foreign_key_list(\"{table}\")"), ())
             .await?;
         while let Some(row) = foreign_keys.next().await? {
-            if row.get::<i64>(1)? == 0 {
-                let target = row.get::<String>(2)?;
-                if !row.get::<String>(3)?.eq_ignore_ascii_case("community_id")
-                    || !row.get::<String>(4)?.eq_ignore_ascii_case("community_id")
+            if row.get_str(3)?.eq_ignore_ascii_case("community_id") {
+                // Check every component, including repeated namespace columns.
+                if !row.get_str(4)?.eq_ignore_ascii_case("community_id") {
+                    return Err(Error::Schema(
+                        "community_id must only reference community_id",
+                    ));
+                }
+                // SQLite applies these actions to every child-key column. An
+                // indexed, scoped parent write must not replace the child scope.
+                for action in [row.get_str(5)?, row.get_str(6)?] {
+                    if action.eq_ignore_ascii_case("SET DEFAULT")
+                        || action.eq_ignore_ascii_case("SET NULL")
+                    {
+                        return Err(Error::Schema(
+                            "foreign key actions must not replace community_id",
+                        ));
+                    }
+                }
+            }
+            if row.get_i64(1)? == 0 {
+                let target = row.get_str(2)?;
+                if !row.get_str(3)?.eq_ignore_ascii_case("community_id")
+                    || !row.get_str(4)?.eq_ignore_ascii_case("community_id")
                     || !tables
                         .iter()
-                        .any(|table| table.eq_ignore_ascii_case(&target))
+                        .any(|table| table.eq_ignore_ascii_case(target))
                 {
                     return Err(Error::Schema(
                         "foreign keys must explicitly bind both community keys",

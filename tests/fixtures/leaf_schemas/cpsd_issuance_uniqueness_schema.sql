@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX cpsd_issuer_tags_owner ON cpsd_issuer_tags(community_id, tag);
