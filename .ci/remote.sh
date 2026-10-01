@@ -67,6 +67,10 @@ if [[ ${1:-} == --coverage ]]; then
     cargo llvm-cov --locked --workspace --all-features --branch \
         --no-cfg-coverage --no-cfg-coverage-nightly --no-report \
         --test remote -- --ignored --test-threads=1
+    cargo llvm-cov --locked --workspace --all-features --branch \
+        --no-cfg-coverage --no-cfg-coverage-nightly --no-report \
+        --lib -- --ignored --test-threads=1
 else
     cargo test --locked --test remote -- --ignored --test-threads=1
+    cargo test --locked --lib -- --ignored --test-threads=1
 fi

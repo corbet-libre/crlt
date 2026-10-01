@@ -232,3 +232,7 @@ impl Transaction {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/backend.rs"]
+mod tests;

@@ -299,3 +299,51 @@ async fn a_missing_directory_fails_cleanly() {
     let url = url::Url::from_file_path(dir.path().join("absent").join("db")).unwrap();
     assert!(Db::open(Config::new(url.to_string(), "")).await.is_err());
 }
+
+#[tokio::test]
+async fn imported_views_triggers_and_ledger_versions_are_revalidated() {
+    for statement in [
+        "CREATE VIEW imported_view AS SELECT id FROM members",
+        "CREATE TRIGGER imported_trigger AFTER INSERT ON members BEGIN SELECT 1; END",
+        "UPDATE __crlt_migrations SET version = 2 WHERE community_id = '__crlt_schema'",
+    ] {
+        let (dir, db) = fixture().await;
+        let raw = libsql::Builder::new_local(dir.path().join("test.db"))
+            .build()
+            .await
+            .unwrap();
+        raw.connect()
+            .unwrap()
+            .execute_batch(statement)
+            .await
+            .unwrap();
+        let result = db.migrate(MIGRATIONS).await;
+        assert!(matches!(
+            result,
+            Err(Error::Schema(_)) | Err(Error::MigrationHistory)
+        ));
+        // Refusing the imported schema must preserve the existing scoped data.
+        assert!(
+            db.community("imported")
+                .unwrap()
+                .query("SELECT id FROM members", ())
+                .await
+                .unwrap()
+                .is_empty()
+        );
+    }
+}
+
+#[tokio::test]
+async fn url_password_and_empty_remote_token_are_rejected_before_connection() {
+    for (url, token) in [
+        ("https://:secret@localhost:18443", "token"),
+        ("https://localhost:18443", ""),
+        ("file:///", ""),
+    ] {
+        assert!(matches!(
+            Db::open(Config::new(url, token)).await,
+            Err(Error::Config(_))
+        ));
+    }
+}

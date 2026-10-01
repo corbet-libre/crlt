@@ -267,9 +267,10 @@ async fn tls_rejects_bad_certificates_auth_redirects_and_downgrades() {
             .await
             .is_err()
     );
+    // Invalid header construction occurs while acquiring the first pool lease.
     assert!(matches!(
         Db::open(Config::new("https://localhost:18443", "invalid\nheader")).await,
-        Err(Error::Config(_))
+        Err(Error::Pool)
     ));
     let mut delayed = Config::new("https://localhost:18443/delay", token);
     delayed.timeout = Duration::from_millis(100);
@@ -331,4 +332,78 @@ async fn tls_uncertain_write_is_not_retried() -> crlt::Result<()> {
         1
     );
     Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires the CI sqld TLS fixture"]
+async fn tls_refuses_corrupted_actual_server_replies_and_recovers() {
+    let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
+    for fault in [
+        "missing-health",
+        "wrong-health",
+        "wrong-width",
+        "invalid-value",
+        "wrong-status",
+        "wrong-response",
+        "foreign-keys-off",
+        "missing-foreign-keys",
+        "query-url",
+        "fragment-url",
+        "password-url",
+        "oversize-length",
+        "oversize-stream",
+        "truncated-body",
+    ] {
+        let endpoint = format!("https://localhost:18443/{fault}");
+        assert!(
+            Db::open(Config::new(endpoint, &token)).await.is_err(),
+            "accepted corrupted server reply: {fault}"
+        );
+    }
+    // The actual upstream remains healthy after refused deliveries.
+    Db::open(config()).await.unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires the CI sqld TLS fixture"]
+async fn tls_refuses_inconsistent_actual_transaction_state() {
+    let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
+    for fault in ["begin-state", "commit-state", "rollback-state"] {
+        let endpoint = format!("https://localhost:18443/{fault}");
+        let db = Db::open(Config::new(endpoint, &token)).await.unwrap();
+        let transaction = db.tx("state-refusal").await;
+        if fault == "begin-state" {
+            assert!(transaction.is_err());
+        } else if fault == "commit-state" {
+            assert!(transaction.unwrap().commit().await.is_err());
+        } else {
+            assert!(transaction.unwrap().rollback().await.is_err());
+        }
+    }
+    Db::open(config()).await.unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires the CI sqld TLS fixture"]
+async fn tls_refuses_non_finite_parameters_without_mutation() {
+    let db = fixture().await;
+    let community = db.community("non-finite").unwrap();
+    for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert!(
+            community
+                .execute(
+                    "INSERT INTO members (id, handle, score) VALUES (?1, ?2, ?3)",
+                    params!["finite", "handle", value],
+                )
+                .await
+                .is_err()
+        );
+    }
+    assert!(
+        community
+            .query("SELECT id FROM members WHERE id = ?1", ["finite"])
+            .await
+            .unwrap()
+            .is_empty()
+    );
 }

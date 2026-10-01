@@ -578,3 +578,90 @@ async fn scalar_predicates_keep_their_filter_after_scoping() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].get_i64(0).unwrap(), 7);
 }
+
+#[tokio::test]
+async fn poisoned_transactions_refuse_every_followup_operation() {
+    let (_dir, db) = fixture().await;
+    let mut tx = db.tx("poisoned").await.unwrap();
+    assert!(tx.execute("DROP TABLE members", ()).await.is_err());
+    assert!(matches!(
+        tx.query("SELECT id FROM members", ()).await,
+        Err(Error::TransactionAborted)
+    ));
+    assert!(matches!(
+        tx.execute("DELETE FROM members", ()).await,
+        Err(Error::TransactionAborted)
+    ));
+    assert!(matches!(
+        tx.explain("SELECT id FROM members", ()).await,
+        Err(Error::TransactionAborted)
+    ));
+    tx.rollback().await.unwrap();
+    assert_eq!(count(&db.community("poisoned").unwrap()).await, 0);
+}
+
+#[tokio::test]
+async fn refuses_unsupported_identifier_and_query_shapes_without_writes() {
+    let (_dir, db) = fixture().await;
+    let a = db.community("shape").unwrap();
+    insert(&a, "one", "kept").await;
+    for sql in [
+        "SELECT * FROM \"\"",
+        "SELECT * FROM \"1table\"",
+        "SELECT * FROM \"bad-name\"",
+        "INSERT INTO members AS alias (id, handle) VALUES ('two', 'changed')",
+        "REPLACE INTO members (id, handle) VALUES ('two', 'changed')",
+        "UPDATE OR IGNORE members SET handle = 'changed'",
+        "UPDATE members JOIN notes ON members.id = notes.member_id SET handle = 'changed'",
+        "DELETE members FROM members",
+        "DELETE FROM members USING notes",
+        "SELECT * FROM members FOR UPDATE",
+        "SELECT * FROM members |> WHERE id = 'one'",
+        "SELECT * FROM TABLE members",
+        "SELECT * FROM members WITH (NOLOCK)",
+        "SELECT * FROM members PARTITION (one)",
+    ] {
+        assert!(
+            matches!(a.query(sql, ()).await, Err(Error::Sql(_))),
+            "{sql}"
+        );
+    }
+    assert_eq!(
+        a.query("SELECT handle FROM members WHERE id = 'one'", ())
+            .await
+            .unwrap()[0]
+            .get_str(0)
+            .unwrap(),
+        "kept"
+    );
+}
+
+#[tokio::test]
+async fn public_reads_and_writes_refuse_materialized_subquery_scans() {
+    let (_dir, db) = fixture().await;
+    let a = db.community("materialized").unwrap();
+    insert(&a, "one", "kept").await;
+    assert!(matches!(
+        a.query(
+            "SELECT * FROM (SELECT count(*) AS n FROM members) WHERE n > 0",
+            ()
+        )
+        .await,
+        Err(Error::UnindexedQuery)
+    ));
+    assert!(matches!(
+        a.execute(
+            "UPDATE members SET score = (SELECT count(*) FROM (SELECT id FROM members GROUP BY id)) WHERE id = 'one'",
+            (),
+        ).await,
+        Err(Error::UnindexedQuery)
+    ));
+    assert_eq!(
+        a.query("SELECT score FROM members WHERE id = 'one'", ())
+            .await
+            .unwrap()[0]
+            .get_i64(0)
+            .unwrap(),
+        0
+    );
+}
