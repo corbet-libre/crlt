@@ -24,6 +24,19 @@ async fn detects_real_table_and_index_scans() {
     .await
     .unwrap();
     assert!(matches!(scan.assert_indexed(), Err(Error::UnindexedQuery)));
+    let named_scan = explain(&conn, "SELECT * FROM sample AS \"three word alias\"", &[])
+        .await
+        .unwrap();
+    assert!(
+        named_scan
+            .details()
+            .iter()
+            .any(|detail| detail == "SCAN three word alias")
+    );
+    assert!(matches!(
+        named_scan.assert_indexed(),
+        Err(Error::UnindexedQuery)
+    ));
     conn.execute("CREATE INDEX by_value ON sample (value)", ())
         .await
         .unwrap();

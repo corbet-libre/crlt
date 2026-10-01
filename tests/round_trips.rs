@@ -612,6 +612,8 @@ async fn refuses_unsupported_identifier_and_query_shapes_without_writes() {
         "INSERT INTO members AS alias (id, handle) VALUES ('two', 'changed')",
         "REPLACE INTO members (id, handle) VALUES ('two', 'changed')",
         "UPDATE OR IGNORE members SET handle = 'changed'",
+        "UPDATE members SET handle = 'changed' FROM notes",
+        "SELECT * FROM (TABLE members UNION SELECT * FROM members)",
         "UPDATE members JOIN notes ON members.id = notes.member_id SET handle = 'changed'",
         "DELETE members FROM members",
         "DELETE FROM members USING notes",
