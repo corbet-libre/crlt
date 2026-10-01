@@ -63,4 +63,10 @@ for attempt in {1..50}; do
     kill -0 "$sqld_pid" "$proxy_pid" || { cat "$fixture/sqld.log" "$fixture/proxy.log"; exit 1; }
     sleep 0.2
 done
-cargo test --locked --test remote -- --ignored --test-threads=1
+if [[ ${1:-} == --coverage ]]; then
+    cargo llvm-cov --locked --workspace --all-features --branch \
+        --no-cfg-coverage --no-cfg-coverage-nightly --no-clean --no-report \
+        --test remote -- --ignored --test-threads=1
+else
+    cargo test --locked --test remote -- --ignored --test-threads=1
+fi
