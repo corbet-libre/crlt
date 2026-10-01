@@ -16,18 +16,21 @@ jobs:
         persist-credentials: false
     - uses: dtolnay/rust-toolchain@stable
     - name: Resolve one fresh dependency snapshot
-      run: |-
-        cargo update
+      run: 'cargo update
+
         rustc --version > resolver.txt
+
         cargo --version >> resolver.txt
+
         date -u +%FT%TZ >> resolver.txt
-        sha256sum Cargo.lock >> resolver.txt
+
+        sha256sum Cargo.lock >> resolver.txt'
     - uses: actions/upload-artifact@v4
       with:
         name: resolved-lock
-        path: |-
-          Cargo.lock
-          resolver.txt
+        path: 'Cargo.lock
+
+          resolver.txt'
         retention-days: 7
   check:
     runs-on: ubuntu-latest
@@ -92,15 +95,17 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         prefix-key: coverage
+        cache-on-failure: true
     - uses: taiki-e/install-action@v2
       with:
         tool: cargo-llvm-cov
-    - run: |-
-        rustc --version
-        cargo llvm-cov --version
+    - run: 'rustc --version
+
+        cargo llvm-cov --version'
+    - name: Clear prior instrumented workspace profiles
+      run: cargo llvm-cov clean --workspace
     - name: Measure real native round trips and failure paths
-      run: cargo llvm-cov --locked --workspace --all-features --branch --no-cfg-coverage --no-cfg-coverage-nightly
-        --ignore-filename-regex '/tests/' --no-report
+      run: cargo llvm-cov --locked --workspace --all-features --branch --no-cfg-coverage --no-cfg-coverage-nightly --ignore-filename-regex '/tests/' --no-report
     - name: Measure real remote SQL and TLS refusal vectors
       run: bash .ci/remote.sh --coverage
     - name: Export the combined native and remote report
@@ -113,11 +118,13 @@ jobs:
       if: always()
       with:
         name: coverage
-        path: |-
-          coverage.json
+        path: 'coverage.json
+
           coverage.lcov
+
           Cargo.lock
-          resolver.txt
+
+          resolver.txt'
         retention-days: 7
 'on':
   push:

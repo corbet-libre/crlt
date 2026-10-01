@@ -65,7 +65,7 @@ for attempt in {1..50}; do
 done
 if [[ ${1:-} == --coverage ]]; then
     cargo llvm-cov --locked --workspace --all-features --branch \
-        --no-cfg-coverage --no-cfg-coverage-nightly --no-clean --no-report \
+        --no-cfg-coverage --no-cfg-coverage-nightly --no-report \
         --test remote -- --ignored --test-threads=1
 else
     cargo test --locked --test remote -- --ignored --test-threads=1
