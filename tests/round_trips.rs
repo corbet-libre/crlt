@@ -219,6 +219,7 @@ async fn rejects_unscoped_sql_escape_hatches() {
         "WITH m AS (SELECT * FROM members) SELECT * FROM m",
         "SELECT * FROM members UNION SELECT * FROM sqlite_schema",
         "SELECT * FROM members UNION TABLE members",
+        "SELECT * FROM members UNION TABLE members UNION SELECT * FROM members",
         "ATTACH DATABASE ':memory:' AS other",
         "PRAGMA foreign_keys = OFF",
         "BEGIN",
@@ -235,6 +236,16 @@ async fn rejects_unscoped_sql_escape_hatches() {
             "{sql}"
         );
     }
+    // The qualified TABLE name consumes exactly its own three parser tokens;
+    // assert the facade guard, rather than accepting an earlier parse failure.
+    assert!(matches!(
+        a.query(
+            "SELECT * FROM members UNION TABLE main.members UNION SELECT * FROM members",
+            ()
+        )
+        .await,
+        Err(Error::Sql("query body must be a read or VALUES"))
+    ));
     assert_eq!(count(&a).await, 1);
 }
 

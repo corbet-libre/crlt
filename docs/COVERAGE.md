@@ -1,43 +1,126 @@
-# Coverage contract
+# Production coverage and proposed exceptions
 
-CI targets 100% of reachable production lines and branches. Stable Rust runs
-the existing native and wasm checks. Nightly Rust is used only for LLVM branch
-instrumentation, which currently requires it. Both jobs use the same resolved
-Cargo.lock snapshot; all build and test commands after resolution use --locked.
+The gate requires every non-excluded emitted production line and branch arm to
+execute. JSON, LCOV and annotated text come from the same native run, including
+real local libSQL and authenticated sqld/TLS tests. Their full source inventories
+must agree before any exception is applied. Tests live under `tests/` directories;
+earlier inline planner test totals were not production-only measurements.
 
-The coverage job executes real tests with cargo-llvm-cov and retains the raw JSON
-even when the gate fails. The checker compares integer covered/total counts for
-both metrics; rounded percentages cannot pass. An empty report cannot pass.
-The report excludes integration-test harness files under tests/, not production
-code. No production source exclusions are currently approved.
+The locations in `.github/coverage-exclusions.json` are review proposals, not
+security acceptance. Each exact line or branch arm is bound to its full source
+file and the tested Cargo.lock. Updating either invalidates the proposal, including
+when CI refreshes a dependency. Executed exceptions must be removed. A line with
+a condition requires separate entries for every emitted arm, not an implicit
+whole-condition exclusion. The checker has 14 real acceptance/refusal regressions.
 
-A failing gate is missing evidence, not permission to lower the threshold or
-change domain behavior. Add meaningful failure and round-trip tests. Document
-any genuinely unreachable defensive branch precisely before excluding it. Native
-coverage does not establish browser execution; keep the actual wasm vectors.
+No threshold is reduced and no domain guard is removed. Reports retain the raw
+unadjusted counters. Native coverage does not qualify other operating systems,
+remote production providers, scalability, or allocation-exhaustion behavior.
 
-First-party dependencies follow main. Their resolved full revisions remain in
-Cargo.lock, with exactly one source per first-party crate. Dependabot maintains
-committed snapshots; CI refreshes once per run and retains the tested snapshot.
-Auto-merge requires protected main and successful substantive checks on the
-exact current Dependabot head. It never executes PR code with write permissions.
+## Local driver value conversion
 
-The coverage execution includes both the local-file suite and the real upstream
-sqld/TLS fixture in `.ci/remote.sh --coverage`. The second suite preserves the
-first profile data with `--no-clean`, then JSON and LCOV report that one combined
-execution. Remote tests are not represented by their normally ignored entries.
-The fixture uses disposable job-local certificates/JWT keys, no hosted account.
+`backend.rs` collects `Row::get_value` over `0..row.column_count()`. In libsql
+0.9.30 `src/local/rows.rs`, `Row::get_value` calls the `FromValue` implementation
+for `crate::Value`, whose entire result is `Ok(val.into())`. This concrete local
+adapter cannot return the error mapped by the collection `?`. Real SQLite query,
+row stepping and remote value/width failures remain exercised and gated. This
+claim is specific to the locked driver, not arbitrary future row decoders.
 
-## Emitted source metric
+## Transaction variant binding
 
-The acceptance metric is now 100% of upstream LLVM LCOV's emitted production
-source line counters (DA) and branch counters (BRDA), from the same execution as
-the retained raw JSON. This is source coverage, not every generic instantiation.
-LLVM JSON and LCOV summary totals can count generic copies differently from
-the merged source records. The original JSON checker remains diagnostic code;
-its stricter instantiation totals are not described as passed.
+The only construction of `Transaction::Remote` is the remote arm of
+`Connection::transaction_with_behavior`, which stores `self.clone()`. There is
+no constructor from a local connection, deserializer or mutation of the variant.
+Consequently its commit/rollback `Connection::Remote` pattern cannot be false.
+Both actual remote autocommit states are tested: the TLS fault proxy forwards the
+real operation to sqld before altering its returned state. No transaction or
+accepted server response is fabricated to exercise the impossible variant.
 
-The source gate requires a nonempty report, an exact file inventory matching the
-companion JSON, matching raw summary metadata, complete emitted branch counts
-and no duplicate, unknown or zero counters. It has no production exclusions.
-Actual browser/device execution remains separate from native coverage.
+## Unix file conversion and allocation limits
+
+These two line exceptions are resource-failure limitations, **not logical
+unreachability**. For the native Linux target, url 2.5.8 accepts a parsed hostless
+`file:` URL and creates an absolute Unix path. The decoder still uses
+`Vec::try_reserve`; a real allocation failure can return an error from either
+`Config::validate` or the repeated conversion in `Db::open`. Deterministically
+forcing only that allocation to fail would require an allocator seam or a memory
+exhaustion campaign. This bounded suite does neither. The defensive mappings stay
+in production and are explicitly not claimed as exercised. Resource exhaustion
+belongs in separate Crow qualification. No Windows conversion claim is made. These Linux-specific proposals also pin
+the complete CI workflow; changing the runner invalidates them.
+
+The `!path.is_absolute()` branch, separately, is unreachable on this native Unix
+path: url's `file_url_segments_to_pathbuf` inserts a leading slash for every
+segment and asserts absolute output. A root path with no filename is a different,
+reachable refusal and is tested, as are remote hosts, tokens and malformed URLs.
+
+## Pool construction
+
+Deadpool 0.13.1 `managed/builder.rs::build` can only fail if a wait/create/recycle
+timeout is configured without a runtime. This facade sets only `max_size`; the
+builder's default timeouts are all `None`. The builder error mapper is therefore
+unreachable. Actual acquisition, connection, recycle, deadline and poisoned
+transaction errors remain independently exercised, not excluded.
+
+## Hrana decoded values and HTTPS hosts
+
+libsql-hrana 0.9.30 marks `proto::Value::None` with `serde(skip_deserializing)`;
+serde_json refuses non-finite JSON numbers as `f64`. The only callers of the
+private decoder consume this deserialized protocol value. Its finite-float false
+arm and catch-all invalid-value line cannot receive a value through real JSON.
+The proxy's actual malformed enum and numeric-value cases fail at deserialization,
+as they should. No synthetic decoder enum is substituted for transport evidence.
+
+After `url.scheme() == "https"`, `host_str().is_none()` is impossible for a
+successfully parsed url 2.5.8 special-scheme HTTPS URL. A hostless non-special
+`libsql:` configuration is separately refused and tested. Downgrade, credentials,
+query, fragment, missing optional base URL, malformed/truncated/oversized replies
+and real TLS configuration failures remain covered.
+
+## Migration community keys
+
+In `audit`, a foreign-key row whose source is `community_id` has already passed
+the earlier target-column equality guard or returned an error. At ordinal zero,
+the second target-column predicate therefore cannot be false after the first
+source-column predicate passes. Mismatched source/target keys, missing parent
+tables, replacement actions, unscoped unique keys, imported objects and malformed
+migration/index names have real local database refusal tests.
+
+## SQLite parser and visitor invariants
+
+These claims concern sqlparser 0.63.0 with **only** `SQLiteDialect`:
+
+- `parse_table_object` produces `TableName`: the insert-table-function and
+  insert-table-query feature methods are false. The other insert-target variant
+  and its error line cannot occur.
+- `replace_into` is set only by `parse_replace`, which refuses SQLite; insert
+  table aliases require `supports_insert_table_alias`, also false. Valid SQLite
+  conflict clauses are separately rejected and tested.
+- `parse_delete` creates `WithoutKeyword` only for BigQuery, Oracle or Generic.
+  The missing-FROM variant and error line cannot occur in SQLite.
+- Pipe operators and table index hints require dialect features absent from
+  SQLite; table partitions require MySQL or Generic. WITH table hints are a
+  distinct reachable field and are tested, not excluded.
+- Before visiting an insert source, `scope` requires `SetExpr::Values`. The
+  visitor rewrites expressions/table factors but never replaces this body
+  discriminant. The subsequent failed destructuring and `unreachable!` cannot run.
+- The visitor walks queries, assignments and expressions, never a root Statement.
+  A query's `pre_visit_query` rejects CTEs and non-read bodies before descending.
+  Accepted Select/Values/Query/SetOperation bodies contain no Statement node;
+  nested queries repeat the same guard. Thus `pre_visit_statement` is a defensive
+  callback with no reachable invocation. Its full six emitted lines and both
+  arms need individual exceptions; no whole-file or blanket callback suppression
+  is configured. Real nested-write/CTE refusals remain tested at earlier guards.
+- Injected table filters parse a fixed SELECT/derived-table template after
+  `name` has reduced the identifier to nonempty ASCII letters/digits/underscore,
+  without quotes or leading digits. The resulting root is Query, its body is
+  Select and its single relation is Derived. The other destructuring arms and
+  panic lines cannot run. Original aliases still vary and both alias cases are
+  exercised through real scoped queries.
+
+A real left-associated multi-union containing a qualified TABLE body is tested
+with the exact facade refusal. The qualification prevents upstream parse_as_table
+from consuming the following UNION tokens as part of its three-token lookahead.
+This distinguishes recursive `read_body` refusal from an earlier parser error;
+that recursive branch has no exception. Parser or driver updates require reviewing these proofs against the
+new retained graph, not merely refreshing hashes to make a red gate green.
