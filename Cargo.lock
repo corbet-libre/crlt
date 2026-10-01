@@ -235,6 +235,7 @@ dependencies = [
  "libsql",
  "libsql-hrana",
  "reqwest",
+ "rustls",
  "serde_json",
  "sqlparser",
  "tempfile",

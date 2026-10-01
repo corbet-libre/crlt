@@ -407,3 +407,18 @@ async fn tls_refuses_non_finite_parameters_without_mutation() {
             .is_empty()
     );
 }
+
+#[tokio::test]
+#[ignore = "requires the CI sqld TLS fixture"]
+async fn failed_remote_migration_preserves_its_error_when_rollback_state_is_invalid() {
+    let healthy = fixture().await;
+    let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
+    let db = Db::open(Config::new("https://localhost:18443/rollback-state", token))
+        .await
+        .unwrap();
+    assert!(matches!(
+        db.migrate(&[]).await,
+        Err(Error::MigrationHistory)
+    ));
+    assert_eq!(healthy.migrate(common::MIGRATIONS).await.unwrap(), 0);
+}

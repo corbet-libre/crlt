@@ -347,3 +347,39 @@ async fn url_password_and_empty_remote_token_are_rejected_before_connection() {
         ));
     }
 }
+
+#[tokio::test]
+async fn imported_actual_virtual_tables_are_not_ordinary_scoped_tables() {
+    let (dir, db) = empty().await;
+    let raw = libsql::Builder::new_local(dir.path().join("test.db"))
+        .build()
+        .await
+        .unwrap();
+    raw.connect()
+        .unwrap()
+        .execute_batch("CREATE VIRTUAL TABLE imported_search USING fts5(community_id, content)")
+        .await
+        .unwrap();
+    assert!(matches!(
+        db.migrate(&[]).await,
+        Err(Error::Schema("only ordinary tables are supported"))
+    ));
+}
+
+#[tokio::test]
+async fn unnamed_index_migration_is_refused_before_any_ddl() {
+    let (_dir, db) = fixture().await;
+    assert!(matches!(
+        db.migrate(&[
+            MIGRATIONS[0],
+            Migration::new(
+                2,
+                "unnamed-index",
+                "CREATE INDEX ON members (community_id, score)"
+            )
+        ])
+        .await,
+        Err(Error::Schema("index must have a name"))
+    ));
+    assert_eq!(db.migrate(MIGRATIONS).await.unwrap(), 0);
+}

@@ -121,3 +121,9 @@ Copyright 2026 Julian Y. Richard Corbet. Licensed under [LGPL-3.0-only](LICENSES
 Dependency updates follow main and are tested against one CI-resolved lockfile.
 Line and branch coverage target 100%; failures remain blocking. See
 [the coverage contract](docs/COVERAGE.md) for measurement and exclusions.
+
+
+The TLS configuration refusal test reuses Reqwest's maintained Rustls/AWS-LC
+provider in a separate integration-test process. Installing its empty cipher list
+exercises a real client-construction failure without replacing crypto or attempting
+a network connection. This test-only dependency is already used by the transport.
