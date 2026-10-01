@@ -267,6 +267,10 @@ async fn tls_rejects_bad_certificates_auth_redirects_and_downgrades() {
             .await
             .is_err()
     );
+    assert!(matches!(
+        Db::open(Config::new("https://localhost:18443", "invalid\nheader")).await,
+        Err(Error::Config(_))
+    ));
     let mut delayed = Config::new("https://localhost:18443/delay", token);
     delayed.timeout = Duration::from_millis(100);
     delayed.busy_timeout = Duration::from_millis(10);

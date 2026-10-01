@@ -27,3 +27,17 @@ sqld/TLS fixture in `.ci/remote.sh --coverage`. The second suite preserves the
 first profile data with `--no-clean`, then JSON and LCOV report that one combined
 execution. Remote tests are not represented by their normally ignored entries.
 The fixture uses disposable job-local certificates/JWT keys, no hosted account.
+
+## Emitted source metric
+
+The acceptance metric is now 100% of upstream LLVM LCOV's emitted production
+source line counters (DA) and branch counters (BRDA), from the same execution as
+the retained raw JSON. This is source coverage, not every generic instantiation.
+LLVM JSON and LCOV summary totals can count generic copies differently from
+the merged source records. The original JSON checker remains diagnostic code;
+its stricter instantiation totals are not described as passed.
+
+The source gate requires a nonempty report, an exact file inventory matching the
+companion JSON, matching raw summary metadata, complete emitted branch counts
+and no duplicate, unknown or zero counters. It has no production exclusions.
+Actual browser/device execution remains separate from native coverage.

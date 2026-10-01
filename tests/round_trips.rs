@@ -202,6 +202,12 @@ async fn rejects_unscoped_sql_escape_hatches() {
     let a = db.community("a").unwrap();
     insert(&a, "one", "alice").await;
     let statements = [
+        "VALUES (1)",
+        "INSERT INTO members (id, handle) SELECT id, handle FROM members",
+        "INSERT INTO members (id, handle) VALUES ('bad')",
+        "DELETE FROM members, notes",
+        "UPDATE members AS m SET handle = 'bad'",
+        "SELECT id INTO copied_members FROM members",
         "SELECT * FROM main.members",
         "SELECT * FROM sqlite_schema",
         "SELECT * FROM __crlt_migrations",
@@ -552,4 +558,23 @@ async fn row_limit_errors_poison_writes_with_returning() {
         Err(Error::RowLimit)
     ));
     assert_eq!(count(&a).await, 2);
+}
+
+#[tokio::test]
+async fn scalar_predicates_keep_their_filter_after_scoping() {
+    let (_dir, db) = fixture().await;
+    let community = db.community("scalar").unwrap();
+    assert!(
+        community
+            .query("SELECT ?1 WHERE ?1 = ?2", [1, 2])
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    let rows = community
+        .query("SELECT ?1 WHERE ?1 = ?2", [7, 7])
+        .await
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].get_i64(0).unwrap(), 7);
 }

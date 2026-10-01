@@ -250,6 +250,7 @@ async fn validates_urls_and_limits_without_network_or_credentials() {
         (":memory:", ""),
         ("relative.db", ""),
         ("file://other-host/tmp/db", ""),
+        ("file:///", ""),
     ] {
         assert!(
             matches!(
@@ -271,6 +272,16 @@ async fn validates_urls_and_limits_without_network_or_credentials() {
     assert!(matches!(Db::open(settings).await, Err(Error::Config(_))));
     let mut settings = config(&dir);
     settings.busy_timeout = std::time::Duration::from_secs(60);
+    assert!(matches!(Db::open(settings).await, Err(Error::Config(_))));
+    let mut settings = config(&dir);
+    settings.max_connections = usize::MAX;
+    assert!(matches!(Db::open(settings).await, Err(Error::Config(_))));
+    let mut settings = config(&dir);
+    settings.timeout = std::time::Duration::MAX;
+    assert!(matches!(Db::open(settings).await, Err(Error::Config(_))));
+    let mut settings = config(&dir);
+    settings.timeout = std::time::Duration::from_secs(u64::from(u32::MAX));
+    settings.busy_timeout = std::time::Duration::from_millis(i32::MAX as u64 + 1);
     assert!(matches!(Db::open(settings).await, Err(Error::Config(_))));
     let settings = Config::new("https://private.example.com", "never-show-this-token");
     let formatted = format!("{settings:?}");
