@@ -6,6 +6,28 @@ Part of `cvld`, the permanent door of the cmtymeet trust stack. Native Rust,
 async with Tokio, no ORM. Interfaces may change. See [the contract](docs/CONTRACT.md)
 for the isolation boundary and supported SQL.
 
+## Scope
+
+### Purpose
+
+`crlt` is the only path from `cvld` services to relational storage, providing connections, pooling, TLS, timeouts, migrations, and community-scoped access over Turso/libSQL (SQLite in tests).
+
+### Owns
+
+Connections, pooling, TLS, deadlines, the migration ledger, and namespace injection; unindexed queries are refused. It guarantees no request logging, and hands leaves a community-scoped handle so multiple communities can share one database without code changes.
+
+### Never
+
+Holds credentials (the service supplies them), runs domain queries, or logs requests. A leaf cannot choose or change its community scope and cannot reach a raw connection. It does not serve `cfrm`, which uses `cvtl`. It passes SQL through rather than becoming an ORM, does not vendor a fork of the driver, and provides no security primitives of its own.
+
+### States
+
+The pool moves from closed to open once migration and audit complete. A transaction moves from open to committed or rolled back; an errored transaction is poisoned and must be rolled back or dropped. A remote timeout leaves an uncertain outcome that the caller reconciles before retrying.
+
+### Test obligations
+
+Two communities sharing one database cannot read or write each other's rows, including through joins, subqueries, and foreign-key actions. Migrations are idempotent, edited history is detected, and a failed schema audit rolls back both DDL and ledger. Every application query must be index-backed; unindexed queries are refused. Remote endpoints require a trusted certificate for the correct host, follow no redirects, perform no automatic write retries, and surface uncertain commits. Live Turso runs use only explicitly supplied disposable credentials. Tests use real round trips with no mocks of this library's logic, and load runs account for metered row reads and writes.
+
 ## Dependency survey
 
 Surveyed crates.io releases and upstream sources on 2026-09-30:
