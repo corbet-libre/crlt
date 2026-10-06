@@ -29,8 +29,16 @@ openssl x509 -req -in "$fixture/server.csr" -CA "$fixture/ca.crt" -CAkey "$fixtu
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
     -addext subjectAltName=DNS:localhost -keyout "$fixture/untrusted.key" \
     -out "$fixture/untrusted.crt" 2>/dev/null
-sudo cp "$fixture/ca.crt" /usr/local/share/ca-certificates/crlt-test.crt
-sudo update-ca-certificates >/dev/null
+# Job-scoped trust bundle (no host CA mutation): the fixture CA is exposed
+# only to this job via the standard bundle variables consumed by the actual
+# TLS clients — rustls-native-certs (Rust reqwest `rustls` feature), curl /
+# OpenSSL, Python requests and Node. Exact TLS assertions in `tests/remote.rs`
+# (untrusted root on :18444, wrong hostname, redirect/downgrade/userinfo,
+# missing-baton/status, http downgrade) are unchanged and still fail closed.
+export SSL_CERT_FILE="$fixture/ca.crt"
+export REQUESTS_CA_BUNDLE="$fixture/ca.crt"
+export CURL_CA_BUNDLE="$fixture/ca.crt"
+export NODE_EXTRA_CA_CERTS="$fixture/ca.crt"
 
 # Disposable local JWT; no hosted database or external credentials are used.
 openssl genpkey -algorithm Ed25519 -out "$fixture/jwt.key"
@@ -48,16 +56,19 @@ PY
 )
 export CRLT_TEST_TOKEN
 export CRLT_TEST_URL=https://localhost:18443
+# Close the job lock FDs (8 toolchain, 9 state, owned by run-cached.sh) in each
+# daemon child at launch so fixtures never retain the locks; cleanup stays
+# exact-PID below, no broad pkill.
 "$fixture/libsql-server-x86_64-unknown-linux-gnu/sqld" \
     --db-path "$fixture/data" --http-listen-addr 127.0.0.1:18080 \
     --http-self-url https://localhost:18443 \
-    --auth-jwt-key-file "$fixture/jwt.pub" > "$fixture/sqld.log" 2>&1 &
+    --auth-jwt-key-file "$fixture/jwt.pub" > "$fixture/sqld.log" 2>&1 8>&- 9>&- &
 sqld_pid=$!
-python3 .ci/tls_proxy.py "$fixture" > "$fixture/proxy.log" 2>&1 &
+python3 .ci/tls_proxy.py "$fixture" > "$fixture/proxy.log" 2>&1 8>&- 9>&- &
 proxy_pid=$!
 for attempt in {1..50}; do
     if curl --silent --fail --user-agent crlt-ci http://127.0.0.1:18080/health >/dev/null \
-        && curl --silent --user-agent crlt-ci https://localhost:18443/ >/dev/null; then
+        && curl --silent --fail --cacert "$fixture/ca.crt" --user-agent crlt-ci https://localhost:18443/ >/dev/null; then
         break
     fi
     kill -0 "$sqld_pid" "$proxy_pid" || { cat "$fixture/sqld.log" "$fixture/proxy.log"; exit 1; }
