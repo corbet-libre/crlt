@@ -53,6 +53,7 @@ pub struct Transaction {
     // Field order drops the libSQL transaction before discarding its lease.
     transaction: Option<backend::Transaction>,
     lease: Option<Lease>,
+    db: Db,
     schema: OwnedRwLockReadGuard<BTreeSet<String>>,
     key: String,
     deadline: Instant,
@@ -215,6 +216,7 @@ impl Community {
             Ok(Transaction {
                 transaction: Some(transaction),
                 lease: Some(lease),
+                db: self.db.clone(),
                 schema,
                 key: self.key.clone(),
                 deadline,
@@ -272,6 +274,13 @@ impl Community {
 }
 
 impl Transaction {
+    /// Whether this transaction belongs to the exact database handle and scope.
+    /// Database/Community clones share identity; separately opened handles do
+    /// not, even when their URLs are equal. No database identifier is exposed.
+    pub fn belongs_to(&self, community: &Community) -> bool {
+        self.key == community.key && Arc::ptr_eq(&self.db.0, &community.db.0)
+    }
+
     fn begin_operation(&mut self) -> Result<()> {
         if self.poisoned {
             return Err(Error::TransactionAborted);
