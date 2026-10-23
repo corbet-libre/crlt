@@ -18,7 +18,7 @@ crate, with no custom cryptography. Deploy one database per community; the
 global service has its own database. Every table carries `community_id` and
 application queries must use indexed searches. No login dates, request logs,
 raw gate data, credential discovery, or registry publication. Real database
-round trips run on GitHub Actions, without workstation builds.
+round trips run on GitHub Actions.
 
 ## Implementation decisions
 

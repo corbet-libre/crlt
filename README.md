@@ -88,8 +88,7 @@ services must also keep dependency SQL/HTTP debug tracing disabled.
 
 GitHub Actions runs `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
 `cargo test` and `cargo deny check advisories licenses bans sources` on stable
-Rust. Unmaintained/yanked dependencies also fail the audit. Do not run Cargo on
-the workstation.
+Rust. Unmaintained/yanked dependencies also fail the audit.
 Tests use real temporary libSQL files, including pooling, rollback, migration
 failure/drift, namespace isolation and index plans. Foreign-key regressions
 reproduce the raw libSQL namespace transfer, reject its migration, check scoped
