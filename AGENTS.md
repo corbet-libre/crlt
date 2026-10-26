@@ -1,19 +1,45 @@
-# Agent instructions
+# crlt agent notes
 
-Write all code comments and documentation in English.
+Work in a lane (`~/agents/scratch/lane-new <lane>`); never edit `~/agents/scratch/ws`.
+Run commands from the lane root (`<lane>/ws`); `<lane>` below is your lane name.
 
-## Product boundary
+Build and test (quote the verdict line, never infer from a pipe):
+- `~/agents/scratch/cbuild <lane> test -p crlt` — green, exit 0
+  (`tests/remote.rs` 10 ignored without the ephemeral-runner fixture;
+  `tests/turso.rs` skips without `TURSO_URL`+`TURSO_TOKEN`).
+- `cargo fmt -p crlt -- --check` and `clippy -p crlt --all-targets -- -D warnings`
+  — clean/green at HEAD.
+- Full gate (locked deps, `.ci/remote.sh` against sqld behind a TLS proxy,
+  coverage, advisories) runs in CI only: `.ci/verify.sh`.
+  Lane `--locked` needs CI's resolve refresh.
 
-- Relational database facade over Turso/libSQL: connections, migrations, community namespaces.
-- Part of `cvld`. Architecture and contract: the cvld gate-architecture documents `CVLD-CONTRACTS.md` and `CVLD-V0.2.md` (v0.4 section) outside this repository; the contract for this crate is copied into `docs/CONTRACT.md` when implementation starts.
-- **Search before you write**: survey maintained crates first; prefer a thin facade over an established library; record candidates, choice and reasons in the README.
-- No own cryptographic primitives. No login dates, no request logs, no raw gate data.
-- Storage only through `crlt` (Turso/libSQL); one database per community with a community key in every table; every query index-backed.
-- This crate is LGPL-3.0-only WITH LGPL-3.0-linking-exception. Do not add dependencies available only under GPL or AGPL.
+Land: `cargo fmt` in touched repos, rebase on main (never force-push),
+`cbuild <lane> xtask land --dry`, then `xtask land`.
 
-## Quality boundary
+Invariants (rule -> enforcing test):
+- Callers cannot set `community_id`; conflicts cannot reach another scope
+  -> `tests/round_trips.rs::inserts_cannot_choose_community_and_conflicts_cannot_reach_another_scope`,
+  `omitted_filters_and_same_ids_remain_isolated`
+- Aliases, joins, subqueries, unions and aggregates stay scoped; unscoped
+  escape hatches refused without writes
+  -> `aliases_joins_subqueries_unions_and_aggregates_are_scoped`,
+  `rejects_unscoped_sql_escape_hatches`
+- Foreign keys bind both communities and cannot cross them
+  -> `tests/foreign_keys.rs::foreign_keys_and_cascades_cannot_cross_communities`,
+  `rejects_both_unsafe_actions_on_delete_and_update_without_defaults`
+- Migrations are complete, contiguous, immutable; failures roll back DDL
+  and history -> `tests/migrations.rs::migration_history_is_complete_contiguous_and_immutable`,
+  `failed_pending_batch_rolls_back_ddl_and_history`
+- Application statements must use indexed plans; scans are refused
+  -> `tests/round_trips.rs::query_plan_helper_confirms_composite_indexes`
+- Transaction identity is per database/scope/handle; poisoned transactions
+  refuse every follow-up
+  -> `tests/transaction_identity.rs::transaction_identity_accepts_clones_and_refuses_other_databases_scopes_and_reopened_handles`,
+  `tests/round_trips.rs::poisoned_transactions_refuse_every_followup_operation`
+- One database per community; never enable SQL/HTTP debug tracing in a
+  deployment (`README.md:81-85`); `forbid(unsafe_code)` (`src/lib.rs`).
 
-- `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` must pass.
-- Do not build locally. Push and let GitHub Actions run; read results with `gh run list` / `gh run view --log-failed`.
-- Tests: real round trips with libSQL (local file or in-memory), no mocks of our own logic; ample edge cases.
-- Commits: plain English, imperative; no AI attribution. Never publish to a registry.
+Pointers: `src/`, `tests/`, `tests/fixtures/leaf_schemas/README.md`,
+`docs/CONTRACT.md`, `docs/DEPENDENCIES.md`.
+Commits: explicit paths, imperative, author per `~/agents/AGENT.md`; no AI trailers.
+`publish=false`; LGPL-3.0-only WITH linking exception; no registry publication.
