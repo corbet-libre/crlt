@@ -4,7 +4,7 @@
 async fn invalid_installed_crypto_provider_cannot_open_a_pool() {
     // Reqwest explicitly honors the process default maintained Rustls provider.
     // No cipher implementation is replaced; an empty supported list is invalid.
-    let mut provider = rustls::crypto::aws_lc_rs::default_provider();
+    let mut provider = rustls::crypto::ring::default_provider();
     provider.cipher_suites.clear();
     assert!(provider.install_default().is_ok());
     assert!(matches!(
