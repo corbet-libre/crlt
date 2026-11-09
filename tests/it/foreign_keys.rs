@@ -1,8 +1,7 @@
 //! Namespace-changing foreign keys and safe actions on real libSQL files.
 
-mod common;
-
-use common::{MIGRATIONS, empty, fixture};
+use crate::common;
+use crate::common::{MIGRATIONS, empty, fixture};
 use crlt::{Community, Error, Migration};
 
 const TRANSFER_SCHEMA: &str = "

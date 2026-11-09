@@ -1,34 +1,32 @@
 //! Migration and configuration failures against real local files.
 
-mod common;
-
-use common::{MIGRATIONS, config, empty, fixture};
+use crate::common::{MIGRATIONS, config, empty, fixture};
 use crlt::{Config, Db, Error, Migration};
 
 #[tokio::test]
 async fn existing_leaf_schemas_migrate_together_and_reopen() {
     // Exact source revisions are recorded beside these SQL snapshots.
     let schemas = [
-        ("crgs", include_str!("fixtures/leaf_schemas/crgs.sql")),
-        ("clbs", include_str!("fixtures/leaf_schemas/clbs.sql")),
-        ("cnrl", include_str!("fixtures/leaf_schemas/cnrl.sql")),
-        ("crbk", include_str!("fixtures/leaf_schemas/crbk.sql")),
-        ("cpky", include_str!("fixtures/leaf_schemas/cpky.sql")),
-        ("cpns", include_str!("fixtures/leaf_schemas/cpns.sql")),
-        ("csgn", include_str!("fixtures/leaf_schemas/csgn.sql")),
-        ("cgrd", include_str!("fixtures/leaf_schemas/cgrd.sql")),
-        ("cssr", include_str!("fixtures/leaf_schemas/cssr.sql")),
+        ("crgs", include_str!("../fixtures/leaf_schemas/crgs.sql")),
+        ("clbs", include_str!("../fixtures/leaf_schemas/clbs.sql")),
+        ("cnrl", include_str!("../fixtures/leaf_schemas/cnrl.sql")),
+        ("crbk", include_str!("../fixtures/leaf_schemas/crbk.sql")),
+        ("cpky", include_str!("../fixtures/leaf_schemas/cpky.sql")),
+        ("cpns", include_str!("../fixtures/leaf_schemas/cpns.sql")),
+        ("csgn", include_str!("../fixtures/leaf_schemas/csgn.sql")),
+        ("cgrd", include_str!("../fixtures/leaf_schemas/cgrd.sql")),
+        ("cssr", include_str!("../fixtures/leaf_schemas/cssr.sql")),
         (
             "cpsd",
-            include_str!("fixtures/leaf_schemas/cpsd_schema.sql"),
+            include_str!("../fixtures/leaf_schemas/cpsd_schema.sql"),
         ),
         (
             "cpsd issuance",
-            include_str!("fixtures/leaf_schemas/cpsd_issuance_schema.sql"),
+            include_str!("../fixtures/leaf_schemas/cpsd_issuance_schema.sql"),
         ),
         (
             "cpsd uniqueness",
-            include_str!("fixtures/leaf_schemas/cpsd_issuance_uniqueness_schema.sql"),
+            include_str!("../fixtures/leaf_schemas/cpsd_issuance_uniqueness_schema.sql"),
         ),
     ];
     let (dir, db) = empty().await;

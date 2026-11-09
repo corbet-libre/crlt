@@ -1,10 +1,8 @@
 //! Real libSQL round trips through the public scoped API.
 
-mod common;
-
 use std::time::Duration;
 
-use common::{MIGRATIONS, config, fixture};
+use crate::common::{MIGRATIONS, config, fixture};
 use crlt::{Community, Db, Error, Value, params};
 
 async fn insert(community: &Community, id: &str, handle: &str) {
