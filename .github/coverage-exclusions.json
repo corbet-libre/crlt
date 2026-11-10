@@ -8,7 +8,7 @@
     "evidence": "docs/COVERAGE.md#local-driver-value-conversion",
     "evidence_sources": {
       "src/backend.rs": "af5f8b457515e74161683df222d706b2d140415829be0afaee149aadae6ba031",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -20,34 +20,34 @@
     "evidence": "docs/COVERAGE.md#unix-file-conversion-and-allocation-limits",
     "evidence_sources": {
       "src/config.rs": "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b",
-      ".github/workflows/ci.yml": "f2d070130e3c96f0299b0e291cbd50cb4f219317b1c5f33f6622243d1c1464f3"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb",
+      ".github/workflows/ci.yml": "b0c9f9b6a6fda8e4b35f4c5d67879013bc5d7aac1a7b6031342c7ba87eac3c1f"
     }
   },
   {
     "file": "src/lib.rs",
-    "line": 105,
+    "line": 106,
     "source": ".map_err(|_| Error::Config(\"invalid file URL\"))?;",
     "target": "native",
     "reason": "Linux URL-to-path allocation failure requires separate resource-exhaustion qualification; not claimed unreachable or tested.",
     "evidence": "docs/COVERAGE.md#unix-file-conversion-and-allocation-limits",
     "evidence_sources": {
-      "src/lib.rs": "ba51666ed59f2176f3ef18f1659f37d014033b908526fdea01a9966381c72974",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b",
+      "src/lib.rs": "478cfbc3e09e23b4ac2f11700940289c424833dbfa7f3695b830de62d0e6a0c8",
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb",
       "src/config.rs": "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4",
-      ".github/workflows/ci.yml": "f2d070130e3c96f0299b0e291cbd50cb4f219317b1c5f33f6622243d1c1464f3"
+      ".github/workflows/ci.yml": "b0c9f9b6a6fda8e4b35f4c5d67879013bc5d7aac1a7b6031342c7ba87eac3c1f"
     }
   },
   {
     "file": "src/lib.rs",
-    "line": 118,
+    "line": 119,
     "source": ".map_err(|_| Error::Pool)?;",
     "target": "native",
     "reason": "No deadpool timeouts are configured; the sole builder error requires one.",
     "evidence": "docs/COVERAGE.md#pool-construction",
     "evidence_sources": {
-      "src/lib.rs": "ba51666ed59f2176f3ef18f1659f37d014033b908526fdea01a9966381c72974",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b",
+      "src/lib.rs": "478cfbc3e09e23b4ac2f11700940289c424833dbfa7f3695b830de62d0e6a0c8",
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb",
       "src/config.rs": "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4"
     }
   },
@@ -60,7 +60,7 @@
     "evidence": "docs/COVERAGE.md#hrana-decoded-values-and-https-hosts",
     "evidence_sources": {
       "src/remote.rs": "b0bf221a66867b567d3c69d295172da007d766640fb130dda5e2eda5921cbf77",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -72,7 +72,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -84,7 +84,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -96,7 +96,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -108,7 +108,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -120,7 +120,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -132,7 +132,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -144,7 +144,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -156,7 +156,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -168,7 +168,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -180,7 +180,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -192,7 +192,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     }
   },
   {
@@ -204,7 +204,7 @@
     "evidence": "docs/COVERAGE.md#transaction-variant-binding",
     "evidence_sources": {
       "src/backend.rs": "af5f8b457515e74161683df222d706b2d140415829be0afaee149aadae6ba031",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -220,7 +220,7 @@
     "evidence": "docs/COVERAGE.md#transaction-variant-binding",
     "evidence_sources": {
       "src/backend.rs": "af5f8b457515e74161683df222d706b2d140415829be0afaee149aadae6ba031",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -236,8 +236,8 @@
     "evidence": "docs/COVERAGE.md#unix-file-conversion-and-allocation-limits",
     "evidence_sources": {
       "src/config.rs": "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b",
-      ".github/workflows/ci.yml": "f2d070130e3c96f0299b0e291cbd50cb4f219317b1c5f33f6622243d1c1464f3"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb",
+      ".github/workflows/ci.yml": "b0c9f9b6a6fda8e4b35f4c5d67879013bc5d7aac1a7b6031342c7ba87eac3c1f"
     },
     "branch": {
       "block": 0,
@@ -253,7 +253,7 @@
     "evidence": "docs/COVERAGE.md#migration-community-keys",
     "evidence_sources": {
       "src/migration.rs": "0b175e0acded65c6d4a691e539021d3e16befc4917dd86f1958639de56e9bfdb",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -269,7 +269,7 @@
     "evidence": "docs/COVERAGE.md#hrana-decoded-values-and-https-hosts",
     "evidence_sources": {
       "src/remote.rs": "b0bf221a66867b567d3c69d295172da007d766640fb130dda5e2eda5921cbf77",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -285,7 +285,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -301,7 +301,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -317,7 +317,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -333,7 +333,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -349,7 +349,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -365,7 +365,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 2,
@@ -381,7 +381,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -397,7 +397,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -413,7 +413,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 1,
@@ -429,7 +429,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 2,
@@ -445,7 +445,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -461,7 +461,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -477,7 +477,7 @@
     "evidence": "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants",
     "evidence_sources": {
       "src/sql.rs": "7e347b3f22f1cea152f7c4dbd876b6e18e5944a5913d32d640a277561faa610b",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
@@ -486,14 +486,14 @@
   },
   {
     "file": "src/transport.rs",
-    "line": 78,
+    "line": 92,
     "source": "|| url.host_str().is_none()",
     "target": "native",
     "reason": "A successfully parsed special-scheme HTTPS URL has a host.",
     "evidence": "docs/COVERAGE.md#hrana-decoded-values-and-https-hosts",
     "evidence_sources": {
-      "src/transport.rs": "ff51948b158b08c105b9601512aed5d12461bcddb26a0de74a2162e94d2ac2b5",
-      "Cargo.lock": "fdd18fd1013544f9a07a1eac4fc1dd70f69a49a4339c39189d293cf4a2e2a40b"
+      "src/transport.rs": "8c0c56f360ecb5c118fd7a3e7d73b62e180a946c7c0efa5288d9414baa6aaaf7",
+      "Cargo.lock": "8a827c16c91ad22d5be4892ec71c9cbdd1887b3562793fed0e84b96ed72708bb"
     },
     "branch": {
       "block": 0,
