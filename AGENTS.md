@@ -5,12 +5,13 @@ Run commands from the lane root (`<lane>/ws`); `<lane>` below is your lane name.
 
 Build and test (quote the verdict line, never infer from a pipe):
 - `~/agents/scratch/cbuild <lane> test -p crlt` — green, exit 0
-  (`tests/remote.rs` 10 ignored without the ephemeral-runner fixture;
+  (`tests/remote.rs` 10 skip without the ephemeral-runner fixture;
   `tests/turso.rs` skips without `TURSO_URL`+`TURSO_TOKEN`).
 - `cargo fmt -p crlt -- --check` and `clippy -p crlt --all-targets -- -D warnings`
   — clean/green at HEAD.
 - Full gate (locked deps, `.ci/remote.sh` against sqld behind a TLS proxy,
-  coverage, advisories) runs in CI only: `.ci/verify.sh`.
+  `ccid coverage run`, advisories) is declared in `.ci/ccid.toml` and runs in CI
+  only (`ccid job-run` → `.ci/run-cached.sh`).
   Lane `--locked` needs CI's resolve refresh.
 
 Land: `cargo fmt` in touched repos, rebase on main (never force-push),

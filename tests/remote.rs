@@ -7,6 +7,16 @@ use std::time::Duration;
 
 use crlt::{Config, Db, Error, Migration, Value, params};
 
+/// The fixture is optional here: without `.ci/remote.sh`'s exported endpoint a
+/// test skips (as the live Turso test does) instead of failing, so the one
+/// instrumented coverage execution runs every test of the crate.
+fn fixture_present() -> bool {
+    matches!(
+        (std::env::var("CRLT_TEST_URL"), std::env::var("CRLT_TEST_TOKEN")),
+        (Ok(url), Ok(token)) if !url.is_empty() && !token.is_empty()
+    )
+}
+
 fn config() -> Config {
     Config::new(
         std::env::var("CRLT_TEST_URL").expect("run .ci/remote.sh"),
@@ -21,8 +31,11 @@ async fn fixture() -> Db {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_values_namespaces_migrations_and_indexes() -> crlt::Result<()> {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return Ok(());
+    }
     let db = fixture().await;
     assert_eq!(db.migrate(common::MIGRATIONS).await?, 0);
     let a = db.community("remote-a")?;
@@ -140,8 +153,11 @@ async fn await_rollback(db: &Db, key: &str) -> crlt::Result<()> {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_transactions_rollback_poison_and_drop() -> crlt::Result<()> {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return Ok(());
+    }
     let db = fixture().await;
     let a = db.community("remote-rollback")?;
     let mut tx = a.tx().await?;
@@ -189,8 +205,11 @@ async fn tls_transactions_rollback_poison_and_drop() -> crlt::Result<()> {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_limits_deadlines_and_pool_recovery() -> crlt::Result<()> {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return Ok(());
+    }
     let db = fixture().await;
     let a = db.community("remote-limits")?;
     a.execute(
@@ -239,8 +258,11 @@ async fn tls_limits_deadlines_and_pool_recovery() -> crlt::Result<()> {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_rejects_bad_certificates_auth_redirects_and_downgrades() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     // Positive control uses the same endpoint and OS trust store as the failures.
     Db::open(config()).await.unwrap();
     let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
@@ -279,8 +301,11 @@ async fn tls_rejects_bad_certificates_auth_redirects_and_downgrades() {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_cancelled_response_aborts_transaction_and_releases_lease() -> crlt::Result<()> {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return Ok(());
+    }
     let db = fixture().await;
     let mut tx = db.tx("remote-cancelled").await?;
     tx.execute(
@@ -303,8 +328,11 @@ async fn tls_cancelled_response_aborts_transaction_and_releases_lease() -> crlt:
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_uncertain_write_is_not_retried() -> crlt::Result<()> {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return Ok(());
+    }
     let db = fixture().await;
     let a = db.community("remote-uncertain")?;
     a.execute(
@@ -335,8 +363,11 @@ async fn tls_uncertain_write_is_not_retried() -> crlt::Result<()> {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_refuses_corrupted_actual_server_replies_and_recovers() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
     for fault in [
         "missing-health",
@@ -365,8 +396,11 @@ async fn tls_refuses_corrupted_actual_server_replies_and_recovers() {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_refuses_inconsistent_actual_transaction_state() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
     for fault in ["begin-state", "commit-state", "rollback-state"] {
         let endpoint = format!("https://localhost:18443/{fault}");
@@ -384,8 +418,11 @@ async fn tls_refuses_inconsistent_actual_transaction_state() {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn tls_refuses_non_finite_parameters_without_mutation() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let db = fixture().await;
     let community = db.community("non-finite").unwrap();
     for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
@@ -409,8 +446,11 @@ async fn tls_refuses_non_finite_parameters_without_mutation() {
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn failed_remote_migration_preserves_its_error_when_rollback_state_is_invalid() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let healthy = fixture().await;
     let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
     let db = Db::open(Config::new("https://localhost:18443/rollback-state", token))

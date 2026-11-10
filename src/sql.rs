@@ -393,3 +393,7 @@ impl VisitorMut for Scoper<'_> {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/scope.rs"]
+mod tests;

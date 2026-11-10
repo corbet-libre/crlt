@@ -2,7 +2,9 @@
 # Run only on an ephemeral CI runner; trust roots and services are job-local.
 set -euo pipefail
 [[ ${GITHUB_ACTIONS:-} == true ]] || { echo 'Run this fixture on GitHub Actions'; exit 1; }
-fixture=$(mktemp -d "${RUNNER_TEMP}/crlt-remote.XXXXXX")
+# RUNNER_TEMP is the job runner's scratch when it sets one (the ccid job does not);
+# TMPDIR is the lane/CI scratch and /tmp the last resort.
+fixture=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/crlt-remote.XXXXXX")
 sqld_pid=
 proxy_pid=
 cleanup() {
@@ -75,13 +77,13 @@ for attempt in {1..50}; do
     sleep 0.2
 done
 if [[ ${1:-} == --coverage ]]; then
-    cargo llvm-cov --locked --workspace --all-features --branch \
-        --no-cfg-coverage --no-cfg-coverage-nightly --no-report \
-        --test remote -- --ignored --test-threads=1
-    cargo llvm-cov --locked --workspace --all-features --branch \
-        --no-cfg-coverage --no-cfg-coverage-nightly --no-report \
-        --lib -- --ignored --test-threads=1
+    # One instrumented execution of the whole workspace with the fixture up: the
+    # fixture tests run whenever CRLT_TEST_URL/CRLT_TEST_TOKEN are exported (they
+    # skip without them), so the sqld/TLS proxy must live across the run. The
+    # shared proxy and server stay deterministic under one test thread.
+    export RUST_TEST_THREADS=1
+    "${CCID_BIN:-ccid}" coverage run --repo "$PWD" --target native
 else
-    cargo test --locked --test remote -- --ignored --test-threads=1
-    cargo test --locked --lib -- --ignored --test-threads=1
+    cargo test --locked --test remote -- --test-threads=1
+    cargo test --locked --lib -- --test-threads=1 backend::
 fi

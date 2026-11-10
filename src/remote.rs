@@ -182,3 +182,7 @@ pub(crate) fn decode_value(value: proto::Value) -> Result<Value> {
         _ => return Err(failure("invalid Hrana value")),
     })
 }
+
+#[cfg(test)]
+#[path = "tests/remote.rs"]
+mod tests;

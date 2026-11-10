@@ -3,7 +3,20 @@ project = "crlt"
 
 [checks.verify]
 kind = "commands"
-commands = [["bash", ".ci/verify.sh"]]
+fleet = true
+commands = [
+  ["ccid", "first-party"],
+  ["cargo", "fmt", "--all", "--check"],
+  ["cargo", "clippy", "--locked", "--all-targets", "--", "-D", "warnings"],
+  ["cargo", "test", "--locked"],
+  ["bash", "-c", "set -euo pipefail\nexport GITHUB_ACTIONS=true\nbash .ci/remote.sh"],
+  # The sqld/TLS fixture must be up while the one instrumented execution runs, so
+  # remote.sh starts it and hands the run its environment; the gate and its
+  # exclusions are this manifest's [coverage] data. The arguments are the shared
+  # defaults (workspace, all features, branch, /tests/ filter), so [coverage]
+  # below declares only the reviewed exclusions.
+  ["bash", "-c", "set -euo pipefail\nexport GITHUB_ACTIONS=true\nbash .ci/remote.sh --coverage"],
+]
 cache_tools = [["rustc", "-vV"], ["cargo", "--version"], ["curl", "--version"], ["openssl", "version"], ["python3", "--version"], ["rustup", "run", "nightly", "rustc", "-vV"], ["rustup", "run", "nightly", "cargo", "llvm-cov", "--version"], ["clang", "--version"], ["pkg-config", "--version"]]
 cache_env = ["LIBCLANG_PATH", "PKG_CONFIG_PATH", "NIX_CFLAGS_COMPILE", "NIX_LDFLAGS", "LD_LIBRARY_PATH"]
 cache_outputs = ["coverage.json", "coverage.lcov", "coverage.txt"]
@@ -32,3 +45,372 @@ workflow = "pr"
 command = ["bash", ".ci/run-cached.sh"]
 
 [check_shell]
+
+[[coverage.exclusions]]
+file = "src/backend.rs"
+line = 166
+source = ".collect::<libsql::Result<Vec<_>>>()?,"
+reason = "Local Value conversion returns only Ok in the locked concrete libSQL driver."
+evidence = "docs/COVERAGE.md#local-driver-value-conversion"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/backend.rs" = "af5f8b457515e74161683df222d706b2d140415829be0afaee149aadae6ba031"
+
+[[coverage.exclusions]]
+file = "src/config.rs"
+line = 66
+source = '.map_err(|_| Error::Config("invalid file URL"))?;'
+reason = "Linux URL-to-path allocation failure requires separate resource-exhaustion qualification; not claimed unreachable or tested."
+evidence = "docs/COVERAGE.md#unix-file-conversion-and-allocation-limits"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+".github/workflows/ci.yml" = "b0c9f9b6a6fda8e4b35f4c5d67879013bc5d7aac1a7b6031342c7ba87eac3c1f"
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/config.rs" = "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4"
+
+[[coverage.exclusions]]
+file = "src/lib.rs"
+line = 106
+source = '.map_err(|_| Error::Config("invalid file URL"))?;'
+reason = "Linux URL-to-path allocation failure requires separate resource-exhaustion qualification; not claimed unreachable or tested."
+evidence = "docs/COVERAGE.md#unix-file-conversion-and-allocation-limits"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+".github/workflows/ci.yml" = "b0c9f9b6a6fda8e4b35f4c5d67879013bc5d7aac1a7b6031342c7ba87eac3c1f"
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/config.rs" = "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4"
+"src/lib.rs" = "478cfbc3e09e23b4ac2f11700940289c424833dbfa7f3695b830de62d0e6a0c8"
+
+[[coverage.exclusions]]
+file = "src/lib.rs"
+line = 119
+source = ".map_err(|_| Error::Pool)?;"
+reason = "No deadpool timeouts are configured; the sole builder error requires one."
+evidence = "docs/COVERAGE.md#pool-construction"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/config.rs" = "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4"
+"src/lib.rs" = "478cfbc3e09e23b4ac2f11700940289c424833dbfa7f3695b830de62d0e6a0c8"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 98
+source = 'return Err(Error::Sql("insert target must be a table"));'
+reason = "parse_table_object yields only TableName under SQLiteDialect, so the non-table insert-target refusal cannot run."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 126
+source = "unreachable!()"
+reason = "The match that guards this destructuring already proved SetExpr::Values, so the failed destructuring cannot run."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 164
+source = 'return Err(Error::Sql("delete requires FROM"));'
+reason = "Only the WithoutKeyword form (BigQuery, Oracle, Generic) reaches this refusal; the SQLite parser cannot build it."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 361
+source = "unreachable!()"
+reason = "The fixed template always parses to a Query; this root destructuring cannot fail."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 364
+source = "unreachable!()"
+reason = "The fixed template's body is always SetExpr::Select; this destructuring cannot fail."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/backend.rs"
+line = 210
+source = "if let Connection::Remote(remote) = conn"
+reason = "A Remote transaction is constructed only with a Remote connection."
+evidence = "docs/COVERAGE.md#transaction-variant-binding"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/backend.rs" = "af5f8b457515e74161683df222d706b2d140415829be0afaee149aadae6ba031"
+
+[[coverage.exclusions]]
+file = "src/backend.rs"
+line = 225
+source = "if let Connection::Remote(remote) = conn"
+reason = "A Remote transaction is constructed only with a Remote connection."
+evidence = "docs/COVERAGE.md#transaction-variant-binding"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/backend.rs" = "af5f8b457515e74161683df222d706b2d140415829be0afaee149aadae6ba031"
+
+[[coverage.exclusions]]
+file = "src/config.rs"
+line = 67
+source = "if !path.is_absolute() || path.file_name().is_none() {"
+reason = "Locked Unix file URL decoder produces an absolute path."
+evidence = "docs/COVERAGE.md#unix-file-conversion-and-allocation-limits"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 0
+
+[coverage.exclusions.evidence_sources]
+".github/workflows/ci.yml" = "b0c9f9b6a6fda8e4b35f4c5d67879013bc5d7aac1a7b6031342c7ba87eac3c1f"
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/config.rs" = "65a3590fd0f07b615f157cd9d55921784b59ac64cab7629804b568bf5b7c0aa4"
+
+[[coverage.exclusions]]
+file = "src/migration.rs"
+line = 225
+source = '|| !row.get_str(4)?.eq_ignore_ascii_case("community_id")'
+reason = "The preceding same-row target guard already bound a community_id source to a community_id target."
+evidence = "docs/COVERAGE.md#migration-community-keys"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 0
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/migration.rs" = "0b175e0acded65c6d4a691e539021d3e16befc4917dd86f1958639de56e9bfdb"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 97
+source = "let TableObject::TableName(table) = &insert.table else {"
+reason = "SQLiteDialect supports neither insert table functions nor insert table queries, so parse_table_object always yields TableName and this arm cannot match."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 104
+source = "|| insert.replace_into"
+reason = "REPLACE is parsed only by parse_replace, which refuses SQLiteDialect, so an Insert from this parser always has replace_into = false."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 0
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 105
+source = "|| insert.table_alias.is_some()"
+reason = "SQLiteDialect supports no insert table alias, so the parser never sets insert.table_alias."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 0
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 125
+source = "let SetExpr::Values(values) = query.body.as_mut() else {"
+reason = "The insert source was required to be SetExpr::Values immediately above, and no visitor rewrites that discriminant."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 163
+source = "let FromTable::WithFromKeyword(from) = &delete.from else {"
+reason = "parse_delete builds FromTable::WithoutKeyword only for BigQuery, Oracle and Generic; SQLite requires FROM and always produces WithFromKeyword."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 240
+source = "if query.with.is_some() || !query.locks.is_empty() || !query.pipe_operators.is_empty() {"
+reason = "SQLiteDialect supports no pipe operator, so query.pipe_operators is always empty."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 2
+id = 4
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 355
+source = "} if with_hints.is_empty() && partitions.is_empty() && index_hints.is_empty() => {"
+reason = "SQLiteDialect parses no PARTITION clause, so partitions stays empty."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 1
+id = 3
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 355
+source = "} if with_hints.is_empty() && partitions.is_empty() && index_hints.is_empty() => {"
+reason = "SQLiteDialect parses no index hint, so index_hints stays empty."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 2
+id = 5
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 360
+source = "let Statement::Query(query) = parsed.remove(0) else {"
+reason = "The injected filter is parsed from the fixed SELECT template, so the root Statement is always Query."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 363
+source = "let SetExpr::Select(mut select) = *query.body else {"
+reason = "The fixed template's Query body is always a SetExpr::Select."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/sql.rs"
+line = 367
+source = "if let TableFactor::Derived {"
+reason = "The fixed template's single FROM relation is always a Derived table, so this arm cannot miss."
+evidence = "docs/COVERAGE.md#sqlite-parser-and-visitor-invariants"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 1
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/sql.rs" = "01aa1ca69a164b23d8b55759fcaa4a063181e5b129798fccb335d1ab136486f6"
+
+[[coverage.exclusions]]
+file = "src/transport.rs"
+line = 92
+source = "|| url.host_str().is_none()"
+reason = "A successfully parsed special-scheme HTTPS URL has a host."
+evidence = "docs/COVERAGE.md#hrana-decoded-values-and-https-hosts"
+targets = ["native"]
+
+[coverage.exclusions.branch]
+block = 0
+id = 0
+
+[coverage.exclusions.evidence_sources]
+"Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
+"src/transport.rs" = "8c0c56f360ecb5c118fd7a3e7d73b62e180a946c7c0efa5288d9414baa6aaaf7"

@@ -6,12 +6,17 @@ real local libSQL and authenticated sqld/TLS tests. Their full source inventorie
 must agree before any exception is applied. Tests live under `tests/` directories;
 earlier inline planner test totals were not production-only measurements.
 
-The locations in `.github/coverage-exclusions.json` are review proposals, not
-security acceptance. Each exact line or branch arm is bound to its full source
-file and the tested Cargo.lock. Updating either invalidates the proposal, including
-when CI refreshes a dependency. Executed exceptions must be removed. A line with
-a condition requires separate entries for every emitted arm, not an implicit
-whole-condition exclusion. The checker has 14 real acceptance/refusal regressions.
+The gate is `ccid coverage run` (declared in `.ci/ccid.toml`): one instrumented
+execution of the workspace with the sqld/TLS fixture up, its `/tests/`-filtered
+reports and the emitted-source cross-check, keeping the 100 % line and branch
+requirement. The locations in `.ci/ccid.toml` (`[[coverage.exclusions]]`) are
+review proposals, not security acceptance. Each exact line or branch arm is bound
+to its full source file and the tested Cargo.lock. Updating either invalidates the
+proposal, including when CI refreshes a dependency. Executed exceptions must be
+removed. A line with a condition requires separate entries for every emitted arm,
+not an implicit whole-condition exclusion. The `.github/check-source-coverage.py`
+copy stays only for the dispatch-only GitHub workflow; the gate itself is ccid's,
+with ccid's own regression suite.
 
 No threshold is reduced and no domain guard is removed. Reports retain the raw
 unadjusted counters. Native coverage does not qualify other operating systems,
@@ -65,11 +70,12 @@ transaction errors remain independently exercised, not excluded.
 ## Hrana decoded values and HTTPS hosts
 
 libsql-hrana 0.9.30 marks `proto::Value::None` with `serde(skip_deserializing)`;
-serde_json refuses non-finite JSON numbers as `f64`. The only callers of the
-private decoder consume this deserialized protocol value. Its finite-float false
-arm and catch-all invalid-value line cannot receive a value through real JSON.
-The proxy's actual malformed enum and numeric-value cases fail at deserialization,
-as they should. No synthetic decoder enum is substituted for transport evidence.
+serde_json refuses non-finite JSON numbers as `f64`. Real wire data therefore
+never carries `None` or a non-finite float into the decoder. A direct unit test
+exercises the decoder's own contract for both (`None` and NaN/infinite floats are
+refused, a finite float is a real number), so no exception remains. The proxy's
+actual malformed enum and numeric-value cases still fail at deserialization, as
+they should: wire evidence is not replaced by a synthetic decoder enum.
 
 After `url.scheme() == "https"`, `host_str().is_none()` is impossible for a
 successfully parsed url 2.5.8 special-scheme HTTPS URL. A hostless non-special
@@ -107,10 +113,10 @@ These claims concern sqlparser 0.63.0 with **only** `SQLiteDialect`:
 - The visitor walks queries, assignments and expressions, never a root Statement.
   A query's `pre_visit_query` rejects CTEs and non-read bodies before descending.
   Accepted Select/Values/Query/SetOperation bodies contain no Statement node;
-  nested queries repeat the same guard. Thus `pre_visit_statement` is a defensive
-  callback with no reachable invocation. Its full six emitted lines and both
-  arms need individual exceptions; no whole-file or blanket callback suppression
-  is configured. Real nested-write/CTE refusals remain tested at earlier guards.
+  nested queries repeat the same guard. Thus `pre_visit_statement` has no reachable
+  invocation through the visitor; its own contract (a read passes, a nested write
+  is refused) is exercised directly by a unit test, so no exception remains. Real
+  nested-write/CTE refusals remain tested at earlier guards.
 - Injected table filters parse a fixed SELECT/derived-table template after
   `name` has reduced the identifier to nonempty ASCII letters/digits/underscore,
   without quotes or leading digits. The resulting root is Query, its body is

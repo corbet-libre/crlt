@@ -1,8 +1,21 @@
 use super::*;
 
+/// The fixture is optional here: without `.ci/remote.sh`'s exported endpoint a
+/// test skips (as the live Turso test does) instead of failing, so the one
+/// instrumented coverage execution runs every test of the crate.
+fn fixture_present() -> bool {
+    matches!(
+        (std::env::var("CRLT_TEST_URL"), std::env::var("CRLT_TEST_TOKEN")),
+        (Ok(url), Ok(token)) if !url.is_empty() && !token.is_empty()
+    )
+}
+
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn actual_remote_adapter_preserves_named_parameters_and_transaction_modes() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let url = std::env::var("CRLT_TEST_URL").unwrap();
     let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
     let remote = Remote::new(
@@ -46,8 +59,11 @@ async fn actual_remote_adapter_preserves_named_parameters_and_transaction_modes(
 }
 
 #[tokio::test]
-#[ignore = "requires the CI sqld TLS fixture"]
 async fn broken_remote_stream_cannot_send_a_followup_request() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
     let remote = Remote::new(
         "https://localhost:18443/wrong-status",
@@ -63,8 +79,11 @@ async fn broken_remote_stream_cannot_send_a_followup_request() {
 }
 
 #[test]
-#[ignore = "requires the CI sqld TLS fixture"]
 fn an_actual_open_stream_can_be_dropped_outside_its_runtime() {
+    if !fixture_present() {
+        eprintln!("skipping remote test: .ci/remote.sh supplies the sqld TLS fixture");
+        return;
+    }
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let connection = runtime.block_on(async {
         let token = std::env::var("CRLT_TEST_TOKEN").unwrap();
