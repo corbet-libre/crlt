@@ -414,3 +414,6 @@ id = 0
 [coverage.exclusions.evidence_sources]
 "Cargo.lock" = "e499123a39132232b22701e3aa30af8c7360efaf28e91f51eea77130feaa672c"
 "src/transport.rs" = "8c0c56f360ecb5c118fd7a3e7d73b62e180a946c7c0efa5288d9414baa6aaaf7"
+
+[security]
+dependencies = "cargo-deny"
